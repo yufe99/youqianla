@@ -1,0 +1,8 @@
+{
+  "name": "今日有钱啦",
+  "description": "你的私人收入暖管家，支持记一笔、报表统计与梦想目标管理",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
