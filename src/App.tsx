@@ -40,39 +40,25 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const unsubRecords = firestoreService.subscribeRecords((cloudRecords) => {
-        setRecords(cloudRecords);
-        // If cloud is empty but local has data, migrate
-        if (cloudRecords.length === 0) {
-          const localRecords = storage.getRecords();
-          if (localRecords.length > 0) {
-            localRecords.forEach(r => firestoreService.saveRecord(r));
-          }
-        }
-      });
-      
-      const unsubGoal = firestoreService.subscribeGoal((cloudGoal) => {
-        setGoal(cloudGoal);
-        if (!cloudGoal) {
-          const localGoal = storage.getGoal();
-          if (localGoal) firestoreService.saveGoal(localGoal);
-        }
-      });
+    const unsubRecords = firestoreService.subscribeRecords(setRecords);
+    const unsubGoal = firestoreService.subscribeGoal(setGoal);
+    const unsubProjects = firestoreService.subscribeProjects(setProjects);
+    
+    return () => {
+      unsubRecords();
+      unsubGoal();
+      unsubProjects();
+    };
+  }, [user]);
 
-      const unsubProjects = firestoreService.subscribeProjects((cloudProjects) => {
-        setProjects(cloudProjects);
-        if (cloudProjects.length === 0) {
-          const localProjects = storage.getProjects();
-          if (localProjects.length > 0) firestoreService.saveProjects(localProjects);
-        }
+  useEffect(() => {
+    // Attempt automatic background login if not logged in
+    if (!user) {
+      const { signInAnonymously } = import('firebase/auth').then(({ signInAnonymously }) => {
+        signInAnonymously(auth).catch(err => {
+          console.warn("Auto-login failed:", err.message);
+        });
       });
-      
-      return () => {
-        unsubRecords();
-        unsubGoal();
-        unsubProjects();
-      };
     }
   }, [user]);
 
@@ -110,10 +96,6 @@ function AppContent() {
       setProjects(newProjects);
     }
   };
-
-  if (!user) {
-    return <LoginPage onLogin={() => {}} />; // LoginPage handles login UI
-  }
 
   const deleteRecord = (id: string) => {
     if (user) {

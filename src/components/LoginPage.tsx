@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, QrCode, ShieldCheck, Smartphone, Mail } from 'lucide-react';
+import { motion } from 'motion/react';
+import { ShieldCheck, Smartphone, QrCode } from 'lucide-react';
 import { BlobIcon } from './BlobIcon';
-import { signInWithGoogle, auth } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
 
 interface LoginPageProps {
@@ -10,22 +10,8 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithGoogle();
-      onLogin();
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGuestLogin = async () => {
     setLoading(true);
@@ -38,13 +24,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const simulateScan = () => {
-    setLoading(true);
-    setTimeout(() => {
-      onLogin();
-    }, 2000);
   };
 
   return (
@@ -64,20 +43,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
         <div className="space-y-4">
           <button 
-            onClick={() => setShowQR(true)}
-            className="w-full bg-[#07C160] hover:bg-[#06ae56] text-white py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-[#07C160]/20 transition-all active:scale-[0.98] z-10"
-          >
-            <MessageCircle size={22} fill="white" />
-            微信扫码登录 (演示)
-          </button>
-          
-          <button 
             onClick={handleGuestLogin}
             disabled={loading}
-            className="w-full bg-white border-2 border-gray-100 text-[#1A1C1E] py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-sm hover:bg-gray-50 transition-all disabled:opacity-50"
+            className="w-full bg-[#07C160] hover:bg-[#06ae56] text-white py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-[#07C160]/20 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            <Smartphone size={20} />
-            快捷直接登录 (数据保存至云端)
+            <Smartphone size={22} fill="white" />
+            立即开始使用 (数据同步至云端)
           </button>
 
           {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
@@ -95,61 +66,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           </div>
         </div>
       </motion.div>
-
-      {/* QR Code Modal Simulation */}
-      <AnimatePresence>
-        {showQR && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowQR(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-[320px] bg-white rounded-[3rem] p-8 flex flex-col items-center shadow-2xl"
-            >
-              <div className="text-center mb-6">
-                <h3 className="font-bold text-lg text-[#1A1C1E]">微信扫码</h3>
-                <p className="text-xs text-gray-400">使用微信扫描下方二维码登录</p>
-              </div>
-
-              <div 
-                onClick={simulateScan}
-                className="relative w-48 h-48 bg-gray-50 rounded-3xl flex items-center justify-center border-4 border-gray-100 group cursor-pointer"
-              >
-                {loading ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-primary font-bold">验证中...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="relative p-4 bg-white rounded-2xl shadow-inner">
-                      <QrCode size={120} className="text-[#1A1C1E]" strokeWidth={1.5} />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-lg flex items-center justify-center border-2 border-[#1A1C1E]">
-                        <BlobIcon type="happy" size={20} />
-                      </div>
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-primary/5 transition-colors rounded-3xl">
-                       <p className="text-[10px] font-bold text-transparent group-hover:text-primary transition-colors">点击模拟扫码成功</p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <p className="mt-8 text-[10px] text-gray-400 text-center">
-                首次登录将自动为您创建账户<br />
-                继续即表示同意 <span className="text-primary underline">服务协议</span>
-              </p>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
