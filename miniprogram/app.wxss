@@ -1,0 +1,23 @@
+/* 全局样式 - 采用小程序原生 rpx 布局 */
+page {
+  background-color: #F8F9FF;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica,
+    Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei',
+    sans-serif;
+  --primary-color: #FFD700;
+  --success-color: #07C160;
+  --danger-color: #FF4D4F;
+  --text-main: #1A1C1E;
+  --text-second: #8E9196;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 0 40rpx;
+  box-sizing: border-box;
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

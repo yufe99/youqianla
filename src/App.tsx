@@ -172,22 +172,22 @@ function AppContent() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full sm:max-w-[420px] mx-auto relative overflow-hidden bg-[#F8F9FF]">
+    <div className="flex flex-col h-[100dvh] w-full mx-auto relative overflow-hidden bg-[#F8F9FF]">
       {/* Safe Area Top */}
       <div className="h-[env(safe-area-inset-top)] bg-[#F8F9FF] shrink-0" />
       
-      {/* Top Header - Floating Boss Mode */}
-      <div className="absolute top-[max(0.75rem,env(safe-area-inset-top)+0.5rem)] right-5 z-[60]">
+      {/* Top Header - Floating Boss Mode (Moved to left to avoid WeChat capsule) */}
+      <div className="absolute top-[max(1rem,env(safe-area-inset-top)+0.75rem)] left-6 z-[60]">
         <button 
           onClick={toggleBossMode}
-          className="p-2.5 bg-white/60 backdrop-blur-md rounded-full shadow-sm text-[#1A1C1E] active:scale-95 transition-all border border-white/40"
+          className="p-2.5 bg-white/70 backdrop-blur-md rounded-full shadow-sm text-[#1A1C1E] active:scale-95 transition-all border border-white/50"
         >
           {isBossMode ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto px-4 pb-[max(5rem,env(safe-area-inset-bottom)+4.5rem)] pt-6">
+      <main className="flex-1 overflow-y-auto px-6 pb-[max(5.5rem,env(safe-area-inset-bottom)+5rem)] pt-6">
         <AnimatePresence mode="wait">
           {activeView === 'home' && (
             <motion.div

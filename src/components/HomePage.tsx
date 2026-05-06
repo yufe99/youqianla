@@ -126,24 +126,21 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
       <section className="pt-4 flex flex-col items-start px-2">
          {explosion && <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"><ConfettiExplosion /></div>}
          
-         <div className="flex flex-col gap-2">
-            <BlobIcon type="happy" size={48} className="animate-float mb-2" />
-            <h1 className="text-4xl font-extrabold tracking-tight text-[#1A1C1E]">
+         <div className="flex flex-col gap-1">
+            <BlobIcon type="happy" size={40} className="animate-float mb-1" />
+            <h1 className="text-3xl font-black tracking-tight text-[#1A1C1E]">
               今日有钱啦
             </h1>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-[#8E9196]">你的私人收入暖管家</p>
-              <div className="p-1 px-2 border border-black/5 bg-white rounded-lg shadow-sm">
-                <Eye size={12} className="text-gray-400" />
-              </div>
+              <p className="text-xs font-bold text-[#8E9196] opacity-60">你的私人收入暖管家</p>
             </div>
          </div>
 
          <div className="mt-8 flex items-center gap-3">
-            <div className="w-16 h-16 bg-[#FFD700]/10 rounded-2xl flex items-center justify-center">
-              <BlobIcon type="happy" size={40} />
+            <div className="w-14 h-14 bg-[#FFD700]/10 rounded-2xl flex items-center justify-center">
+              <BlobIcon type="happy" size={36} />
             </div>
-            <p className="text-lg font-bold text-[#1A1C1E]">{greeting}</p>
+            <p className="text-base font-black text-[#1A1C1E]">{greeting}</p>
          </div>
       </section>
 

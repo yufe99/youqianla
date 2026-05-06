@@ -1,0 +1,94 @@
+<view class="container">
+  <!-- 顶部状态栏占位 -->
+  <view style="height: {{statusBarHeight}}px;"></view>
+  
+  <!-- 头部欢迎语 -->
+  <view class="header">
+    <image class="blob-icon" src="../../images/happy-blob.png" mode="aspectFit"></image>
+    <view class="title">今日有钱啦</view>
+    <view class="subtitle">你的私人收入暖管家</p>
+  </view>
+
+  <view class="greeting-row">
+    <view class="mini-blob-box">
+      <image class="mini-blob" src="../../images/happy-blob.png"></image>
+    </view>
+    <view class="greeting-text">{{greeting}}</view>
+  </view>
+
+  <!-- 今日概览卡片 -->
+  <view class="stats-card">
+    <view class="card-bg-icon">🎯</view>
+    <view class="stats-label">今日净收入实时分拣</view>
+    <view class="stats-amount">
+      <text class="currency">¥</text>{{maskMode ? '****' : netIncome}}
+    </view>
+    
+    <view class="stats-grid">
+      <view class="grid-item income">
+        <view class="item-label">今日提成</view>
+        <view class="item-value">+{{maskMode ? '***' : todayIncome}}</view>
+      </view>
+      <view class="grid-item expense">
+        <view class="item-label">今日支出</view>
+        <view class="item-value">-{{maskMode ? '***' : todayExpense}}</view>
+      </view>
+    </view>
+
+    <!-- 目标进度 -->
+    <view class="goal-box" wx:if="{{goal}}">
+      <view class="goal-header">
+        <text class="goal-name">{{goal.name}}</text>
+        <text class="goal-percent">{{goalProgress}}%</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-inner" style="width: {{goalProgress}}%"></view>
+      </view>
+      <view class="goal-footer">还差 ¥{{maskMode ? '***' : goalRemain}}</view>
+    </view>
+  </view>
+
+  <!-- 记一笔 按钮 -->
+  <view class="action-center">
+    <view class="add-btn" bindtap="showAddModal">
+      <view class="add-icon-box">
+        <image class="btn-blob" src="../../images/happy-blob.png"></image>
+      </view>
+      <text class="add-text">记一笔</text>
+    </view>
+  </view>
+
+  <!-- 明细列表 -->
+  <view class="list-section">
+    <view class="list-header">
+      <view class="list-title-box">
+        <view class="list-title">本日收入明细 实时</view>
+        <view class="list-subtitle">TODAY'S TRANSACTIONS</view>
+      </view>
+      <view class="list-count">
+        <view class="dot"></view>
+        今日 {{records.length}} 笔
+      </view>
+    </view>
+
+    <view class="record-list">
+      <view class="record-item" wx:for="{{records}}" wx:key="id">
+        <view class="item-left">
+          <view class="type-icon {{item.entryType === 'income' ? 'income' : 'expense'}}">{{item.type[0]}}</view>
+          <view class="item-info">
+            <view class="item-name">{{item.type}}</view>
+            <view class="item-meta">{{item.time}} {{item.orderNumber ? '· ' + item.orderNumber : ''}}</view>
+          </view>
+        </view>
+        <view class="item-right {{item.entryType === 'income' ? 'income-val' : 'expense-val'}}">
+          {{item.entryType === 'income' ? '+' : '-'}}{{maskMode ? '***' : item.amount}}
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 脱敏模式悬浮按钮 (左侧) -->
+<view class="boss-mode-btn" style="top: {{statusBarHeight + 10}}px" bindtap="toggleMask">
+  <image class="eye-icon" src="../../images/eye-{{maskMode ? 'off' : 'on'}}.png"></image>
+</view>
