@@ -21,7 +21,6 @@ import {
 } from 'recharts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Clock } from 'lucide-react';
 
 interface StatsPageProps {
   records: RecordEntry[];
