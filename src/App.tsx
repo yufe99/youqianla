@@ -8,7 +8,7 @@ import { Home, BarChart3, Settings, Plus, Mic, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { BossModeProvider, useBossMode } from './components/BossModeContext';
 import { apiService } from './lib/api';
-import { ViewType, RecordEntry, DreamGoal, ProjectConfig } from './types';
+import { ViewType, RecordEntry, DreamGoal, ProjectConfig, ExpenseCategory } from './types';
 import { storage } from './lib/storage';
 import HomePage from './components/HomePage';
 import StatsPage from './components/StatsPage';
@@ -20,16 +20,18 @@ function AppContent() {
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [goal, setGoal] = useState<DreamGoal | null>(null);
   const [projects, setProjects] = useState<ProjectConfig[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const { isBossMode, toggleBossMode } = useBossMode();
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [loadedRecords, loadedGoal, loadedProjects] = await Promise.all([
+        const [loadedRecords, loadedGoal, loadedProjects, loadedExpenseCategories] = await Promise.all([
           apiService.getRecords(),
           apiService.getGoal(),
-          apiService.getProjects()
+          apiService.getProjects(),
+          apiService.getExpenseCategories()
         ]);
         
         // If server is empty, try to migrate from local storage
@@ -64,11 +66,22 @@ function AppContent() {
         } else {
           setProjects(loadedProjects);
         }
+
+        if (loadedExpenseCategories.length === 0) {
+          const localExpenses = storage.getExpenseCategories();
+          if (localExpenses.length > 0) {
+            await apiService.saveExpenseCategories(localExpenses);
+            setExpenseCategories(localExpenses);
+          }
+        } else {
+          setExpenseCategories(loadedExpenseCategories);
+        }
       } catch (err) {
         console.warn("Could not sync with cloud, using local storage fallback.");
         setRecords(storage.getRecords());
         setGoal(storage.getGoal());
         setProjects(storage.getProjects());
+        setExpenseCategories(storage.getExpenseCategories());
       } finally {
         setLoading(false);
       }
@@ -83,10 +96,15 @@ function AppContent() {
     try {
       await apiService.saveRecord(entry);
       if (goal) {
-        const updatedGoal = { ...goal, currentAmount: goal.currentAmount + entry.amount };
-        await apiService.saveGoal(updatedGoal);
-        setGoal(updatedGoal);
-        storage.saveGoal(updatedGoal);
+        // Only income contributes to goal progress (based on previous logic, but expenses could deduct it)
+        // User didn't specify, but usually goals are income targets.
+        // Let's only update goal if it's income.
+        if (entry.entryType === 'income') {
+          const updatedGoal = { ...goal, currentAmount: goal.currentAmount + entry.amount };
+          await apiService.saveGoal(updatedGoal);
+          setGoal(updatedGoal);
+          storage.saveGoal(updatedGoal);
+        }
       }
     } catch (err) {
       console.error("Cloud save failed");
@@ -113,11 +131,27 @@ function AppContent() {
     }
   };
 
+  const updateExpenseCategories = async (newCategories: ExpenseCategory[]) => {
+    setExpenseCategories(newCategories);
+    storage.saveExpenseCategories(newCategories);
+    try {
+      await apiService.saveExpenseCategories(newCategories);
+    } catch (err) {
+      console.error("Cloud expense categories save failed");
+    }
+  };
+
   const deleteRecord = async (id: string) => {
+    const recordToDelete = records.find(r => r.id === id);
     setRecords(prev => prev.filter(r => r.id !== id));
     storage.deleteRecord(id);
     try {
       await apiService.deleteRecord(id);
+      // If we deleted an income record, we should probably update the goal back
+      if (recordToDelete && recordToDelete.entryType === 'income' && goal) {
+         const updatedGoal = { ...goal, currentAmount: Math.max(0, goal.currentAmount - recordToDelete.amount) };
+         updateGoal(updatedGoal);
+      }
     } catch (err) {
       console.error("Cloud delete failed");
     }
@@ -125,7 +159,7 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FF]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#F8F9FF]">
         <div className="flex flex-col items-center gap-6">
           <BlobIcon type="happy" size={80} className="animate-bounce" />
           <div className="flex flex-col items-center gap-2">
@@ -138,9 +172,9 @@ function AppContent() {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto relative overflow-hidden bg-[#F8F9FF]">
+    <div className="flex flex-col h-[100dvh] w-full sm:max-w-[420px] mx-auto relative overflow-hidden bg-[#F8F9FF] sm:shadow-[0_0_80px_rgba(0,0,0,0.1)] sm:my-8 sm:rounded-[3.5rem] sm:border-[8px] sm:border-white">
       {/* Top Header */}
-      <header className="p-6 flex justify-between items-center z-10">
+      <header className="px-6 pt-12 pb-4 flex justify-between items-center z-10 shrink-0">
         <div className="flex items-center gap-3">
           <BlobIcon type="happy" size={48} className="animate-float" />
           <div>
@@ -150,7 +184,7 @@ function AppContent() {
         </div>
         <button 
           onClick={toggleBossMode}
-          className="p-3 bg-white rounded-2xl shadow-soft-3d text-[#1A1C1E] plush-button"
+          className="p-3 bg-white rounded-2xl shadow-soft-3d text-[#1A1C1E] plush-button active:scale-95 transition-all"
           title="老板来了模式"
         >
           {isBossMode ? <EyeOff size={22} /> : <Eye size={22} />}
@@ -158,7 +192,7 @@ function AppContent() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24">
+      <main className="flex-1 overflow-y-auto px-4 pb-32">
         <AnimatePresence mode="wait">
           {activeView === 'home' && (
             <motion.div
@@ -173,6 +207,7 @@ function AppContent() {
                 onAddRecord={handleAddRecord} 
                 goal={goal} 
                 projects={projects} 
+                expenseCategories={expenseCategories}
                 onDeleteRecord={deleteRecord}
               />
             </motion.div>
@@ -202,6 +237,8 @@ function AppContent() {
                  records={records} 
                  projects={projects} 
                  onSaveProjects={updateProjects}
+                 expenseCategories={expenseCategories}
+                 onSaveExpenseCategories={updateExpenseCategories}
               />
             </motion.div>
           )}
@@ -209,7 +246,7 @@ function AppContent() {
       </main>
 
       {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-20 bg-white/80 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around px-8 pb-4 z-20">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-2xl border-t border-gray-100 flex items-center justify-around px-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
         <NavButton 
           active={activeView === 'home'} 
           onClick={() => setActiveView('home')} 

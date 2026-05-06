@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase } from 'lucide-react';
+import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { DreamGoal, RecordEntry, ProjectConfig } from '../types';
+import { DreamGoal, RecordEntry, ProjectConfig, ExpenseCategory } from '../types';
 import { storage } from '../lib/storage';
 
 interface SettingsPageProps {
@@ -15,14 +15,26 @@ interface SettingsPageProps {
   records: RecordEntry[];
   projects: ProjectConfig[];
   onSaveProjects: (projects: ProjectConfig[]) => void;
+  expenseCategories: ExpenseCategory[];
+  onSaveExpenseCategories: (categories: ExpenseCategory[]) => void;
 }
 
-export default function SettingsPage({ goal, onSaveGoal, records, projects, onSaveProjects }: SettingsPageProps) {
+export default function SettingsPage({ 
+  goal, 
+  onSaveGoal, 
+  records, 
+  projects, 
+  onSaveProjects,
+  expenseCategories,
+  onSaveExpenseCategories
+}: SettingsPageProps) {
   const [goalName, setGoalName] = useState(goal?.name || '');
   const [goalAmount, setGoalAmount] = useState(goal?.targetAmount || '');
   
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectAmount, setNewProjectAmount] = useState('');
+
+  const [newExpenseName, setNewExpenseName] = useState('');
 
   const handleAddProject = () => {
     if (!newProjectName || !newProjectAmount) return;
@@ -40,30 +52,46 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
     onSaveProjects(projects.filter(p => p.id !== id));
   };
 
+  const handleAddExpenseCategory = () => {
+    if (!newExpenseName) return;
+    const newCategory: ExpenseCategory = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newExpenseName
+    };
+    onSaveExpenseCategories([...expenseCategories, newCategory]);
+    setNewExpenseName('');
+  };
+
+  const handleDeleteExpenseCategory = (id: string) => {
+    onSaveExpenseCategories(expenseCategories.filter(c => c.id !== id));
+  };
+
   const handleSaveGoal = () => {
     if (!goalName || !goalAmount) return;
     onSaveGoal({
       name: goalName,
       targetAmount: Number(goalAmount),
-      currentAmount: records.reduce((acc, curr) => acc + curr.amount, 0) // Simplified persistent total
+      currentAmount: records.filter(r => r.entryType === 'income').reduce((acc, curr) => acc + curr.amount, 0)
     });
   };
 
   const exportToCSV = () => {
-    const headers = ['日期', '项目', '金额'];
+    const headers = ['日期', '类型', '项目', '金额', '备注'];
     const rows = records.map(r => [
       new Date(r.timestamp).toLocaleString(),
+      r.entryType === 'income' ? '收入' : '支出',
       r.type,
-      r.amount
+      r.amount,
+      r.note || ''
     ]);
     
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n" 
+    const csvContent = "\uFEFF" + headers.join(",") + "\n" 
       + rows.map(e => e.join(",")).join("\n");
       
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", "今日有钱_我的账本.csv");
     document.body.appendChild(link);
     link.click();
@@ -117,6 +145,45 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
           <button 
             onClick={handleAddProject}
             className="p-3 bg-[#1A1C1E] text-white rounded-2xl plush-button"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      </section>
+
+      {/* Expense Categories Management Section */}
+      <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <Plus className="text-red-400" size={18} />
+          <h4 className="font-bold text-[#1A1C1E]">自定义支出分类</h4>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">添加属于你的日常支出项，让每一分钱去向清晰。</p>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          {expenseCategories.map((c) => (
+            <div key={c.id} className="flex items-center gap-2 bg-[#FAFAFA] pl-3 pr-1 py-1 rounded-full border border-gray-100">
+              <span className="text-xs font-bold text-[#1A1C1E]">{c.name}</span>
+              <button 
+                onClick={() => handleDeleteExpenseCategory(c.id)}
+                className="p-1.5 text-gray-300 hover:text-red-400"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            placeholder="新支出分类，如：吸烟" 
+            value={newExpenseName}
+            onChange={(e) => setNewExpenseName(e.target.value)}
+            className="flex-1 bg-[#FAFAFA] rounded-2xl px-4 py-3 text-sm focus:outline-red-300 border-none"
+          />
+          <button 
+            onClick={handleAddExpenseCategory}
+            className="p-3 bg-red-400 text-white rounded-2xl plush-button"
           >
             <Plus size={20} />
           </button>

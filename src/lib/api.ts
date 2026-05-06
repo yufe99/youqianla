@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RecordEntry, DreamGoal, ProjectConfig } from '../types';
+import { RecordEntry, DreamGoal, ProjectConfig, ExpenseCategory } from '../types';
 
 // In WeChat Cloud Run, the frontend is served from the same origin as the API
 const api = axios.create({
@@ -36,5 +36,14 @@ export const apiService = {
 
   async saveProjects(projects: ProjectConfig[]): Promise<void> {
     await api.post('/projects', { projects });
+  },
+
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    const res = await api.get('/expense-categories');
+    return res.data;
+  },
+
+  async saveExpenseCategories(categories: ExpenseCategory[]): Promise<void> {
+    await api.post('/expense-categories', { categories });
   }
 };

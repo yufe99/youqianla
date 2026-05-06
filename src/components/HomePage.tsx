@@ -6,7 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Mic, Sparkles, Target, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RecordEntry, DreamGoal, ProjectConfig } from '../types';
+import { RecordEntry, DreamGoal, ProjectConfig, ExpenseCategory } from '../types';
 import { useBossMode } from './BossModeContext';
 import { BlobIcon } from './BlobIcon';
 import ConfettiExplosion from 'react-confetti-explosion';
@@ -17,24 +17,34 @@ interface HomePageProps {
   onDeleteRecord: (id: string) => void;
   goal: DreamGoal | null;
   projects: ProjectConfig[];
+  expenseCategories: ExpenseCategory[];
 }
 
 const PROJECT_COLORS = ['bg-[#FFE8CC]', 'bg-[#D3F9D8]', 'bg-[#E3FAFC]', 'bg-[#FFF0F6]', 'bg-[#F3F0FF]', 'bg-[#E7F5FF]'];
 
-export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, projects }: HomePageProps) {
+export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, projects, expenseCategories }: HomePageProps) {
   const { maskAmount } = useBossMode();
   const [explosion, setExplosion] = useState(false);
   const [showManualAdd, setShowManualAdd] = useState(false);
+  const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedExpenseId, setSelectedExpenseId] = useState('');
   const [customName, setCustomName] = useState('');
   const [customAmount, setCustomAmount] = useState('');
   const [customOrderNumber, setCustomOrderNumber] = useState('');
   const [customStartTime, setCustomStartTime] = useState('');
 
-  const todayTotal = useMemo(() => {
+  const todayIncome = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
     return records
-      .filter(r => new Date(r.timestamp).setHours(0, 0, 0, 0) === today)
+      .filter(r => new Date(r.timestamp).setHours(0, 0, 0, 0) === today && r.entryType === 'income')
+      .reduce((acc, curr) => acc + curr.amount, 0);
+  }, [records]);
+
+  const todayExpense = useMemo(() => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return records
+      .filter(r => new Date(r.timestamp).setHours(0, 0, 0, 0) === today && r.entryType === 'expense')
       .reduce((acc, curr) => acc + curr.amount, 0);
   }, [records]);
 
@@ -59,15 +69,23 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
     let name = customName;
     let amount = Number(customAmount);
 
-    if (selectedProjectId) {
-      const project = projects.find(p => p.id === selectedProjectId);
-      if (project) {
-        name = project.name;
-        amount = project.amount;
+    if (entryType === 'income') {
+      if (selectedProjectId) {
+        const project = projects.find(p => p.id === selectedProjectId);
+        if (project) {
+          name = project.name;
+          amount = project.amount;
+        }
+      }
+    } else {
+      if (selectedExpenseId) {
+        const category = expenseCategories.find(c => c.id === selectedExpenseId);
+        if (category) {
+          name = category.name;
+        }
       }
     }
 
-    // 只校验名称和有效金额，流水号和上钟时间现在是选填
     if (!name || isNaN(amount) || amount <= 0 || name.trim() === '') {
       return;
     }
@@ -77,14 +95,17 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
       timestamp: Date.now(),
       type: name,
       amount: amount,
-      orderNumber: customOrderNumber.trim() || undefined,
-      startTime: customStartTime || undefined
+      entryType: entryType,
+      orderNumber: entryType === 'income' ? (customOrderNumber.trim() || undefined) : undefined,
+      startTime: entryType === 'income' ? (customStartTime || undefined) : undefined
     });
+
     setCustomName('');
     setCustomAmount('');
     setCustomOrderNumber('');
     setCustomStartTime('');
     setSelectedProjectId('');
+    setSelectedExpenseId('');
     setShowManualAdd(false);
     triggerSuccess();
   };
@@ -121,9 +142,20 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
           <Target size={120} className="-mr-10 -mt-10 rotate-12" />
         </div>
         
-        <p className="text-sm font-medium text-[#8E9196] mb-2 uppercase tracking-widest">今日提成</p>
+        <p className="text-sm font-medium text-[#8E9196] mb-2 uppercase tracking-widest">今日净收入</p>
         <div className="text-5xl font-bold text-[#1A1C1E] tracking-tight mb-4">
-          {maskAmount(todayTotal)}
+          {maskAmount(todayIncome - todayExpense)}
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-white/40 p-3 rounded-2xl">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">今日提成</p>
+            <p className="text-lg font-bold text-primary">+{maskAmount(todayIncome)}</p>
+          </div>
+          <div className="bg-white/40 p-3 rounded-2xl">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">今日支出</p>
+            <p className="text-lg font-bold text-red-400">-{maskAmount(todayExpense)}</p>
+          </div>
         </div>
         
         {goal && (
@@ -173,7 +205,7 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
           {todayRecords.map((record) => (
             <div key={record.id} className="bg-white p-4 rounded-3xl flex items-center justify-between border border-gray-50 shadow-sm group">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center text-primary font-bold">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${record.entryType === 'income' ? 'bg-primary/10 text-primary' : 'bg-red-50 text-red-400'}`}>
                   {record.type.slice(0, 1)}
                 </div>
                 <div>
@@ -182,11 +214,14 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
                     {new Date(record.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} 
                     {record.orderNumber && ` · ${record.orderNumber}`}
                     {record.startTime && ` · 上钟: ${record.startTime}`}
+                    {record.entryType === 'expense' && ` · 支出记录`}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="text-sm font-bold text-primary">+{maskAmount(record.amount)}</div>
+                <div className={`text-sm font-bold ${record.entryType === 'income' ? 'text-primary' : 'text-red-400'}`}>
+                  {record.entryType === 'income' ? '+' : '-'}{maskAmount(record.amount)}
+                </div>
                 <button 
                   onClick={() => onDeleteRecord(record.id)}
                   className="p-1.5 text-gray-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
@@ -220,94 +255,149 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[3rem] p-8 pb-12 z-50 shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-[3rem] p-8 pb-12 z-50 shadow-2xl h-[85vh] overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
                 <h4 className="font-bold text-xl text-[#1A1C1E]">手动记一笔</h4>
                 <button onClick={() => setShowManualAdd(false)} className="p-2 bg-gray-50 rounded-full"><X size={20} /></button>
               </div>
+
+              {/* Type Toggle */}
+              <div className="flex bg-[#FAFAFA] p-1 rounded-2xl mb-6">
+                <button 
+                  onClick={() => setEntryType('income')}
+                  className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryType === 'income' ? 'bg-white shadow-sm text-primary' : 'text-gray-400'}`}
+                >
+                  提成收入
+                </button>
+                <button 
+                  onClick={() => setEntryType('expense')}
+                  className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryType === 'expense' ? 'bg-white shadow-sm text-red-500' : 'text-gray-400'}`}
+                >
+                  支出记账
+                </button>
+              </div>
+
               <div className="space-y-4 mb-8">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 px-1">订单流水号</label>
-                    <input 
-                      type="text" 
-                      placeholder="输入流水号 (可选)" 
-                      value={customOrderNumber}
-                      onChange={(e) => setCustomOrderNumber(e.target.value)}
-                      className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-3.5 text-sm focus:ring-2 ring-primary outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 px-1">上钟时间</label>
-                    <input 
-                      type="time" 
-                      value={customStartTime}
-                      onChange={(e) => setCustomStartTime(e.target.value)}
-                      className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-3.5 text-sm focus:ring-2 ring-primary outline-none"
-                    />
-                  </div>
-                </div>
+                {entryType === 'income' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 px-1">订单流水号</label>
+                        <input 
+                          type="text" 
+                          placeholder="输入流水号 (可选)" 
+                          value={customOrderNumber}
+                          onChange={(e) => setCustomOrderNumber(e.target.value)}
+                          className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-3.5 text-sm focus:ring-2 ring-primary outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 px-1">上钟时间</label>
+                        <input 
+                          type="time" 
+                          value={customStartTime}
+                          onChange={(e) => setCustomStartTime(e.target.value)}
+                          className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-3.5 text-sm focus:ring-2 ring-primary outline-none"
+                        />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 px-1">选择常用项目</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {projects.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          setSelectedProjectId(p.id);
-                          setCustomName('');
-                          setCustomAmount('');
-                        }}
-                        className={`p-3 rounded-2xl border text-left transition-all ${
-                          selectedProjectId === p.id 
-                            ? 'border-primary bg-primary/10' 
-                            : 'border-gray-100 bg-white'
-                        }`}
-                      >
-                        <div className="text-xs font-bold text-[#1A1C1E]">{p.name}</div>
-                        <div className="text-[10px] text-gray-400">提成 ￥{p.amount}</div>
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setSelectedProjectId('')}
-                      className={`p-3 rounded-2xl border text-left transition-all ${
-                        !selectedProjectId 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-gray-100 bg-white'
-                      }`}
-                    >
-                      <div className="text-xs font-bold text-[#1A1C1E]">自定义项目</div>
-                      <div className="text-[10px] text-gray-400">手动输入金额</div>
-                    </button>
-                  </div>
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 px-1">选择常用项目</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {projects.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              setSelectedProjectId(p.id);
+                              setCustomName('');
+                              setCustomAmount('');
+                            }}
+                            className={`p-3 rounded-2xl border text-left transition-all ${
+                              selectedProjectId === p.id 
+                                ? 'border-primary bg-primary/10' 
+                                : 'border-gray-100 bg-white'
+                            }`}
+                          >
+                            <div className="text-xs font-bold text-[#1A1C1E]">{p.name}</div>
+                            <div className="text-[10px] text-gray-400">提成 ￥{p.amount}</div>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setSelectedProjectId('')}
+                          className={`p-3 rounded-2xl border text-left transition-all ${
+                            !selectedProjectId 
+                              ? 'border-primary bg-primary/10' 
+                              : 'border-gray-100 bg-white'
+                          }`}
+                        >
+                          <div className="text-xs font-bold text-[#1A1C1E]">自定义项目</div>
+                          <div className="text-[10px] text-gray-400">手动输入金额</div>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 px-1">选择支出分类</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {expenseCategories.map((c) => (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              setSelectedExpenseId(c.id);
+                              setCustomName('');
+                            }}
+                            className={`p-3 rounded-2xl border text-left transition-all ${
+                              selectedExpenseId === c.id 
+                                ? 'border-red-400 bg-red-50' 
+                                : 'border-gray-100 bg-white'
+                            }`}
+                          >
+                            <div className="text-xs font-bold text-[#1A1C1E]">{c.name}</div>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setSelectedExpenseId('')}
+                          className={`p-3 rounded-2xl border text-left transition-all ${
+                            !selectedExpenseId 
+                              ? 'border-red-400 bg-red-50' 
+                              : 'border-gray-100 bg-white'
+                          }`}
+                        >
+                          <div className="text-xs font-bold text-[#1A1C1E]">自定义分类</div>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 px-1">支出金额 (￥)</label>
+                      <input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-4 text-sm focus:ring-2 ring-red-400 outline-none"
+                      />
+                    </div>
+                  </>
+                )}
 
-                {!selectedProjectId && (
+                {((entryType === 'income' && !selectedProjectId) || (entryType === 'expense' && !selectedExpenseId)) && (
                   <motion.div 
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     className="space-y-4 overflow-hidden"
                   >
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 px-1">项目名称</label>
+                      <label className="text-xs font-bold text-gray-400 px-1">{entryType === 'income' ? '项目名称' : '支出说明'}</label>
                       <input 
                         type="text" 
-                        placeholder="例如：高级足浴" 
+                        placeholder={entryType === 'income' ? '例如：高级足浴' : '例如：买水果'}
                         value={customName}
                         onChange={(e) => setCustomName(e.target.value)}
-                        className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-4 text-sm focus:ring-2 ring-primary outline-none"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 px-1">提成金额 (￥)</label>
-                      <input 
-                        type="number" 
-                        placeholder="0.00" 
-                        value={customAmount}
-                        onChange={(e) => setCustomAmount(e.target.value)}
-                        className="w-full bg-[#FAFAFA] rounded-2xl px-5 py-4 text-sm focus:ring-2 ring-primary outline-none"
+                        className={`w-full bg-[#FAFAFA] rounded-2xl px-5 py-4 text-sm focus:ring-2 outline-none ${entryType === 'income' ? 'ring-primary' : 'ring-red-400'}`}
                       />
                     </div>
                   </motion.div>
@@ -315,11 +405,11 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
               </div>
               <button 
                 onClick={handleManualAdd}
-                className="w-full py-4 bg-primary text-[#1A1C1E] font-bold rounded-2xl plush-button shadow-lg shadow-primary/20"
+                className={`w-full py-4 text-[#1A1C1E] font-bold rounded-2xl plush-button shadow-lg ${entryType === 'income' ? 'bg-primary shadow-primary/20' : 'bg-red-400 shadow-red-400/20'}`}
               >
-                保存记账
+                保存{entryType === 'income' ? '收入' : '支出'}
               </button>
-              <p className="text-center text-[10px] text-gray-400 mt-4">提示：流水号及上钟时间为选填项</p>
+              <p className="text-center text-[10px] text-gray-400 mt-4">提示：{entryType === 'income' ? '流水号及上钟时间为选填项' : '点击分类即可快速记录'}</p>
             </motion.div>
           </>
         )}

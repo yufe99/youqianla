@@ -8,20 +8,25 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Middleware for parsing JSON
   app.use(express.json());
 
   // In-memory mock database (replace with MySQL for persistence)
   // Key: openid, Value: user data
-  const db: Record<string, { records: any[], goal: any, projects: any[] }> = {};
+  const db: Record<string, { records: any[], goal: any, projects: any[], expenseCategories: any[] }> = {};
 
   const getUserData = (req: express.Request) => {
     // WeChat Cloud Run automatically injects 'x-wx-openid' header
     const openid = (req.headers['x-wx-openid'] || 'default-user') as string;
     if (!db[openid]) {
-      db[openid] = { records: [], goal: null, projects: [] };
+      db[openid] = { 
+        records: [], 
+        goal: null, 
+        projects: [],
+        expenseCategories: [] 
+      };
     }
     return db[openid];
   };
@@ -59,6 +64,15 @@ async function startServer() {
 
   app.post("/api/projects", (req, res) => {
     getUserData(req).projects = req.body.projects;
+    res.json({ success: true });
+  });
+
+  app.get("/api/expense-categories", (req, res) => {
+    res.json(getUserData(req).expenseCategories);
+  });
+
+  app.post("/api/expense-categories", (req, res) => {
+    getUserData(req).expenseCategories = req.body.categories;
     res.json({ success: true });
   });
 
