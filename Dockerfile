@@ -27,6 +27,7 @@ RUN npm install --production && npm install -g tsx
 
 # 微信云托管默认建议监听 80 端口
 ENV PORT=80
+ENV NODE_ENV=production
 EXPOSE 80
 
 # 启动命令
