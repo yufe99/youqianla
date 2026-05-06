@@ -61,6 +61,14 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // 小程序专用测试接口
+  app.get("/api/test", (req, res) => {
+    res.json({
+      status: "ok",
+      message: "✅ 小程序连接云托管成功！"
+    });
+  });
+
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
