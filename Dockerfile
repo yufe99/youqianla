@@ -1,27 +1,33 @@
-# 使用 Node.js 20 作为基础镜像
-FROM node:22-slim
+# 使用 Node.js 基础镜像
+FROM node:22-slim AS builder
 
-# 设置工作目录
 WORKDIR /app
-
-# 复制依赖定义文件
 COPY package*.json ./
-
-# 安装依赖
 RUN npm install
-
-# 复制所有源代码
 COPY . .
-
-# 执行前端构建 (生成 dist 目录)
 RUN npm run build
 
-# 暴露 3000 端口 (AI Studio 默认端口)
-# 注意：微信云托管默认监听 80，可以在管理后台修改或将服务改为监听 80
-EXPOSE 3000
+# 运行阶段
+FROM node:22-slim
+WORKDIR /app
 
-# 设置生产环境标识
-ENV NODE_ENV=production
+# 设置时区为北京时间
+RUN apt-get update && apt-get install -y tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 启动服务器
-CMD ["npm", "start"]
+# 复制构建产物和服务器脚本
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/server.ts ./
+COPY --from=builder /app/package*.json ./
+
+# 安装生产环境必要的运行工具
+RUN npm install --production && npm install -g tsx
+
+# 微信云托管默认建议监听 80 端口
+ENV PORT=80
+EXPOSE 80
+
+# 启动命令
+CMD ["tsx", "server.ts"]

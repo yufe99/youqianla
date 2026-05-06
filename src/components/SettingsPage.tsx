@@ -4,10 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase } from 'lucide-react';
+import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
 import { DreamGoal, RecordEntry, ProjectConfig } from '../types';
 import { storage } from '../lib/storage';
+import { auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 interface SettingsPageProps {
   goal: DreamGoal | null;
@@ -23,6 +25,12 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
   
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectAmount, setNewProjectAmount] = useState('');
+
+  const handleLogout = async () => {
+    if (window.confirm('确定要退出登录吗？数据已同步到云端。')) {
+      await signOut(auth);
+    }
+  };
 
   const handleAddProject = () => {
     if (!newProjectName || !newProjectAmount) return;
@@ -172,6 +180,19 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
               <Download size={18} className="text-blue-500" />
             </div>
             <span className="text-sm font-bold text-[#1A1C1E]">导出账目到微信 (CSV)</span>
+          </div>
+          <ChevronRight size={18} className="text-gray-300" />
+        </button>
+
+        <button 
+          onClick={handleLogout}
+          className="w-full bg-white p-4 rounded-3xl flex items-center justify-between border border-gray-100 plush-button"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center">
+              <LogOut size={18} className="text-orange-500" />
+            </div>
+            <span className="text-sm font-bold text-[#1A1C1E]">退出登录 / 切换账户</span>
           </div>
           <ChevronRight size={18} className="text-gray-300" />
         </button>

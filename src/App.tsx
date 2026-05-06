@@ -7,6 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { Home, BarChart3, Settings, Plus, Mic, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BossModeProvider, useBossMode } from './components/BossModeContext';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { firestoreService } from './lib/firestoreService';
 import { ViewType, RecordEntry, DreamGoal, ProjectConfig } from './types';
 import { storage } from './lib/storage';
 import HomePage from './components/HomePage';
@@ -17,45 +20,108 @@ import { BlobIcon } from './components/BlobIcon';
 
 function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('home');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [goal, setGoal] = useState<DreamGoal | null>(null);
   const [projects, setProjects] = useState<ProjectConfig[]>([]);
   const { isBossMode, toggleBossMode } = useBossMode();
 
   useEffect(() => {
-    setRecords(storage.getRecords());
-    setGoal(storage.getGoal());
-    setProjects(storage.getProjects());
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        // Fallback to local storage if not logged in (optional, but keep it for and test)
+        setRecords(storage.getRecords());
+        setGoal(storage.getGoal());
+        setProjects(storage.getProjects());
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const unsubRecords = firestoreService.subscribeRecords((cloudRecords) => {
+        setRecords(cloudRecords);
+        // If cloud is empty but local has data, migrate
+        if (cloudRecords.length === 0) {
+          const localRecords = storage.getRecords();
+          if (localRecords.length > 0) {
+            localRecords.forEach(r => firestoreService.saveRecord(r));
+          }
+        }
+      });
+      
+      const unsubGoal = firestoreService.subscribeGoal((cloudGoal) => {
+        setGoal(cloudGoal);
+        if (!cloudGoal) {
+          const localGoal = storage.getGoal();
+          if (localGoal) firestoreService.saveGoal(localGoal);
+        }
+      });
+
+      const unsubProjects = firestoreService.subscribeProjects((cloudProjects) => {
+        setProjects(cloudProjects);
+        if (cloudProjects.length === 0) {
+          const localProjects = storage.getProjects();
+          if (localProjects.length > 0) firestoreService.saveProjects(localProjects);
+        }
+      });
+      
+      return () => {
+        unsubRecords();
+        unsubGoal();
+        unsubProjects();
+      };
+    }
+  }, [user]);
+
   const handleAddRecord = (entry: RecordEntry) => {
-    storage.saveRecord(entry);
-    setRecords(storage.getRecords());
-    if (goal) {
-       const updatedGoal = { ...goal, currentAmount: goal.currentAmount + entry.amount };
-       storage.saveGoal(updatedGoal);
-       setGoal(updatedGoal);
+    if (user) {
+      firestoreService.saveRecord(entry);
+      if (goal) {
+        firestoreService.saveGoal({ ...goal, currentAmount: goal.currentAmount + entry.amount });
+      }
+    } else {
+      storage.saveRecord(entry);
+      setRecords(storage.getRecords());
+      if (goal) {
+        const updatedGoal = { ...goal, currentAmount: goal.currentAmount + entry.amount };
+        storage.saveGoal(updatedGoal);
+        setGoal(updatedGoal);
+      }
     }
   };
 
   const updateGoal = (newGoal: DreamGoal) => {
-    storage.saveGoal(newGoal);
-    setGoal(newGoal);
+    if (user) {
+      firestoreService.saveGoal(newGoal);
+    } else {
+      storage.saveGoal(newGoal);
+      setGoal(newGoal);
+    }
   };
 
   const updateProjects = (newProjects: ProjectConfig[]) => {
-    storage.saveProjects(newProjects);
-    setProjects(newProjects);
+    if (user) {
+      firestoreService.saveProjects(newProjects);
+    } else {
+      storage.saveProjects(newProjects);
+      setProjects(newProjects);
+    }
   };
 
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  if (!user) {
+    return <LoginPage onLogin={() => {}} />; // LoginPage handles login UI
   }
 
   const deleteRecord = (id: string) => {
-    storage.deleteRecord(id);
-    setRecords(storage.getRecords());
+    if (user) {
+      firestoreService.deleteRecord(id);
+    } else {
+      storage.deleteRecord(id);
+      setRecords(storage.getRecords());
+    }
   };
 
   return (

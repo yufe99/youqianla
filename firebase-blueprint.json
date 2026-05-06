@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "RecordEntry": {
+      "title": "RecordEntry",
+      "description": "A single income record entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "type": { "type": "string", "description": "Project name or type" },
+        "amount": { "type": "number", "description": "Commission amount" },
+        "note": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "startTime": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "type", "amount", "userId"]
+    },
+    "DreamGoal": {
+      "title": "DreamGoal",
+      "description": "A user's dream goal",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "targetAmount": { "type": "number" },
+        "currentAmount": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "targetAmount", "currentAmount", "userId"]
+    },
+    "ProjectConfig": {
+      "title": "ProjectConfig",
+      "description": "A user's pre-configured project for quick entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "amount": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "name", "amount", "userId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/records/{recordId}": {
+      "schema": "RecordEntry",
+      "description": "User's income records"
+    },
+    "users/{userId}/goals/{goalId}": {
+      "schema": "DreamGoal",
+      "description": "User's goals (usually only one active)"
+    },
+    "users/{userId}/projects/{projectId}": {
+      "schema": "ProjectConfig",
+      "description": "User's custom projects"
+    }
+  }
+}

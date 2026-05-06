@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, QrCode, ShieldCheck, Smartphone } from 'lucide-react';
+import { MessageCircle, QrCode, ShieldCheck, Smartphone, Mail } from 'lucide-react';
 import { BlobIcon } from './BlobIcon';
+import { signInWithGoogle, auth } from '../lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -10,6 +12,33 @@ interface LoginPageProps {
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+      onLogin();
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInAnonymously(auth);
+      onLogin();
+    } catch (err: any) {
+      setError(err.message || 'Guest login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const simulateScan = () => {
     setLoading(true);
@@ -39,16 +68,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             className="w-full bg-[#07C160] hover:bg-[#06ae56] text-white py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-[#07C160]/20 transition-all active:scale-[0.98] z-10"
           >
             <MessageCircle size={22} fill="white" />
-            微信扫码登录
+            微信扫码登录 (演示)
           </button>
           
           <button 
-            onClick={() => onLogin()}
-            className="w-full bg-white border border-gray-100 text-[#1A1C1E] py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-sm hover:bg-gray-50 transition-all"
+            onClick={handleGuestLogin}
+            disabled={loading}
+            className="w-full bg-white border-2 border-gray-100 text-[#1A1C1E] py-4 rounded-3xl font-bold flex items-center justify-center gap-3 shadow-sm hover:bg-gray-50 transition-all disabled:opacity-50"
           >
             <Smartphone size={20} />
-            快捷测试登录 (点此直接进入)
+            快捷直接登录 (数据保存至云端)
           </button>
+
+          {error && <p className="text-red-500 text-xs text-center mt-2">{error}</p>}
         </div>
 
         <div className="mt-12 flex items-center justify-center gap-6 text-[#8E9196]">
