@@ -26,9 +26,10 @@ async function startServer() {
     return db[openid];
   };
 
-  // API Routes
+  // 获取所有记账记录
   app.get("/api/records", (req, res) => {
-    res.json(getUserData(req).records);
+    const data = getUserData(req);
+    res.json(data.records);
   });
 
   app.post("/api/records", (req, res) => {
@@ -59,14 +60,6 @@ async function startServer() {
   app.post("/api/projects", (req, res) => {
     getUserData(req).projects = req.body.projects;
     res.json({ success: true });
-  });
-
-  // 小程序专用测试接口
-  app.get("/api/test", (req, res) => {
-    res.json({
-      status: "ok",
-      message: "✅ 小程序连接云托管成功！"
-    });
   });
 
   app.get("/api/health", (req, res) => {
