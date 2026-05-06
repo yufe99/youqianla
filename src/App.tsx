@@ -172,35 +172,30 @@ function AppContent() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full sm:max-w-[420px] mx-auto relative overflow-hidden bg-[#F8F9FF] sm:shadow-[0_0_80px_rgba(0,0,0,0.1)] sm:my-8 sm:rounded-[3.5rem] sm:border-[8px] sm:border-white">
-      {/* Top Header */}
-      <header className="px-6 pt-12 pb-4 flex justify-between items-center z-10 shrink-0">
-        <div className="flex items-center gap-3">
-          <BlobIcon type="happy" size={48} className="animate-float" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1A1C1E]">今日有钱啦</h1>
-            <p className="text-xs text-[#8E9196] mt-0.5">你的私人收入暖管家</p>
-          </div>
-        </div>
+    <div className="flex flex-col h-[100dvh] w-full sm:max-w-[420px] mx-auto relative overflow-hidden bg-[#F8F9FF]">
+      {/* Safe Area Top */}
+      <div className="h-[env(safe-area-inset-top)] bg-[#F8F9FF] shrink-0" />
+      
+      {/* Top Header - Floating Boss Mode */}
+      <div className="absolute top-[max(0.75rem,env(safe-area-inset-top)+0.5rem)] right-5 z-[60]">
         <button 
           onClick={toggleBossMode}
-          className="p-3 bg-white rounded-2xl shadow-soft-3d text-[#1A1C1E] plush-button active:scale-95 transition-all"
-          title="老板来了模式"
+          className="p-2.5 bg-white/60 backdrop-blur-md rounded-full shadow-sm text-[#1A1C1E] active:scale-95 transition-all border border-white/40"
         >
-          {isBossMode ? <EyeOff size={22} /> : <Eye size={22} />}
+          {isBossMode ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
-      </header>
+      </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto px-4 pb-32">
+      <main className="flex-1 overflow-y-auto px-4 pb-[max(5rem,env(safe-area-inset-bottom)+4.5rem)] pt-6">
         <AnimatePresence mode="wait">
           {activeView === 'home' && (
             <motion.div
               key="home"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
             >
               <HomePage 
                 records={records} 
@@ -215,10 +210,10 @@ function AppContent() {
           {activeView === 'stats' && (
             <motion.div
               key="stats"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
             >
               <StatsPage records={records} deleteRecord={deleteRecord} />
             </motion.div>
@@ -226,10 +221,10 @@ function AppContent() {
           {activeView === 'settings' && (
             <motion.div
               key="settings"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
             >
               <SettingsPage 
                  goal={goal} 
@@ -246,24 +241,24 @@ function AppContent() {
       </main>
 
       {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-2xl border-t border-gray-100 flex items-center justify-around px-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-xl border-t border-gray-100 flex items-center justify-around px-8 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 z-50 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
         <NavButton 
           active={activeView === 'home'} 
           onClick={() => setActiveView('home')} 
-          icon={<BlobIcon type="happy" size={28} />} 
-          label="今日" 
+          icon={<BlobIcon type={activeView === 'home' ? 'happy' : 'neutral'} size={activeView === 'home' ? 32 : 28} />} 
+          label="记账账本" 
         />
         <NavButton 
           active={activeView === 'stats'} 
           onClick={() => setActiveView('stats')} 
-          icon={<BlobIcon type="neutral" size={28} />} 
-          label="报表" 
+          icon={<BarChart3 size={24} strokeWidth={activeView === 'stats' ? 2.5 : 2} />} 
+          label="月度分析" 
         />
         <NavButton 
           active={activeView === 'settings'} 
           onClick={() => setActiveView('settings')} 
-          icon={<BlobIcon type="angry" size={28} />} 
-          label="设置" 
+          icon={<Settings size={24} strokeWidth={activeView === 'settings' ? 2.5 : 2} />} 
+          label="我的管理" 
         />
       </nav>
     </div>
@@ -274,14 +269,12 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
   return (
     <button 
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 transition-all ${
-        active ? 'text-[#FFD700] scale-110' : 'text-[#8E9196]'
-      }`}
+      className={`flex flex-col items-center gap-1.5 transition-all outline-none active:scale-90 ${active ? 'text-[#07C160]' : 'text-[#8E9196]'}`}
     >
-      <div className={`${active ? 'p-1' : ''}`}>
+      <div className={`transition-transform duration-300 ${active ? 'scale-110' : ''}`}>
         {icon}
       </div>
-      <span className="text-[10px] font-medium">{label}</span>
+      <span className={`text-[10px] font-bold tracking-tight ${active ? 'text-[#1A1C1E] opacity-100' : 'opacity-40'}`}>{label}</span>
     </button>
   );
 }

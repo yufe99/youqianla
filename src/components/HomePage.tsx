@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Mic, Sparkles, Target, X, Trash2 } from 'lucide-react';
+import { Plus, Mic, Sparkles, Target, X, Trash2, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RecordEntry, DreamGoal, ProjectConfig, ExpenseCategory } from '../types';
 import { useBossMode } from './BossModeContext';
@@ -121,84 +121,105 @@ export default function HomePage({ records, onAddRecord, onDeleteRecord, goal, p
   }, [goal]);
 
   return (
-    <div className="space-y-6">
-      {/* Hello Wall */}
-      <section className="mt-2 text-center py-4">
+    <div className="space-y-8">
+      {/* Hello Wall - Screenshot Inspired */}
+      <section className="pt-4 flex flex-col items-start px-2">
          {explosion && <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"><ConfettiExplosion /></div>}
-         <motion.div 
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            className="w-32 h-32 bg-primary/10 rounded-full mx-auto flex items-center justify-center mb-4 relative"
-         >
-            <div className="absolute inset-0 bg-[#FFD700] opacity-10 blur-2xl animate-pulse"></div>
-            <BlobIcon type="happy" size={80} className="animate-float z-10" />
-         </motion.div>
-         <h2 className="text-lg font-medium text-[#1A1C1E] px-4">{greeting}</h2>
+         
+         <div className="flex flex-col gap-2">
+            <BlobIcon type="happy" size={48} className="animate-float mb-2" />
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#1A1C1E]">
+              今日有钱啦
+            </h1>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-[#8E9196]">你的私人收入暖管家</p>
+              <div className="p-1 px-2 border border-black/5 bg-white rounded-lg shadow-sm">
+                <Eye size={12} className="text-gray-400" />
+              </div>
+            </div>
+         </div>
+
+         <div className="mt-8 flex items-center gap-3">
+            <div className="w-16 h-16 bg-[#FFD700]/10 rounded-2xl flex items-center justify-center">
+              <BlobIcon type="happy" size={40} />
+            </div>
+            <p className="text-lg font-bold text-[#1A1C1E]">{greeting}</p>
+         </div>
       </section>
 
-      {/* Main Card */}
-      <div className="glass-card rounded-[2.5rem] p-8 text-center relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Target size={120} className="-mr-10 -mt-10 rotate-12" />
+      {/* Main Stats Card */}
+      <div className="bg-white/60 backdrop-blur-3xl rounded-[2.5rem] p-8 text-left relative overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.03)] border border-white/80">
+        <div className="absolute -top-12 -right-12 p-4 opacity-5 pointer-events-none">
+          <Target size={160} className="rotate-12" />
         </div>
         
-        <p className="text-sm font-medium text-[#8E9196] mb-2 uppercase tracking-widest">今日净收入</p>
-        <div className="text-5xl font-bold text-[#1A1C1E] tracking-tight mb-4">
-          {maskAmount(todayIncome - todayExpense)}
+        <p className="text-xs font-bold text-[#8E9196] mb-2 uppercase tracking-widest opacity-60">今日净收入实时分拣</p>
+        <div className="text-5xl font-black text-[#1A1C1E] tracking-tighter mb-8 tabular-nums">
+          <span className="text-2xl mr-1 font-bold">¥</span>{maskAmount(todayIncome - todayExpense)}
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-white/40 p-3 rounded-2xl">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">今日提成</p>
-            <p className="text-lg font-bold text-primary">+{maskAmount(todayIncome)}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-[#07C160]/5 p-4 rounded-3xl border border-[#07C160]/10">
+            <p className="text-[10px] text-[#07C160] font-bold uppercase tracking-wider mb-1">今日提成</p>
+            <p className="text-xl font-black text-[#07C160]">+{maskAmount(todayIncome)}</p>
           </div>
-          <div className="bg-white/40 p-3 rounded-2xl">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">今日支出</p>
-            <p className="text-lg font-bold text-red-400">-{maskAmount(todayExpense)}</p>
+          <div className="bg-red-500/5 p-4 rounded-3xl border border-red-500/10">
+            <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mb-1">今日支出</p>
+            <p className="text-xl font-black text-red-500">-{maskAmount(todayExpense)}</p>
           </div>
         </div>
         
         {goal && (
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between text-xs font-medium px-1">
-              <span className="text-[#8E9196]">{goal.name}</span>
-              <span className="text-primary">{goalProgress}%</span>
+          <div className="mt-8 pt-6 border-t border-gray-100/50 space-y-3">
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">目标进度</p>
+                <p className="text-sm font-bold text-[#1A1C1E]">{goal.name}</p>
+              </div>
+              <span className="text-2xl font-black text-primary tracking-tighter">{goalProgress}%</span>
             </div>
-            <div className="h-2.5 w-full bg-[#F1F1F1] rounded-full overflow-hidden">
+            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden p-0.5">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${goalProgress}%` }}
-                className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(255,215,0,0.5)]"
+                className="h-full bg-primary rounded-full shadow-[0_2px_10px_rgba(255,215,0,0.3)] transition-all duration-1000"
               />
             </div>
-            <p className="text-[10px] text-[#A0A0A0]">距离愿望达成还差 {maskAmount(goal.targetAmount - goal.currentAmount)}</p>
+            <p className="text-[10px] font-bold text-gray-300 text-right">
+              还差 <span className="text-[#1A1C1E]">¥{maskAmount(goal.targetAmount - goal.currentAmount)}</span>
+            </p>
           </div>
         )}
       </div>
 
-      {/* Add Button - Large Logo Style (Soft/Harmonious) */}
-      <section className="flex justify-center py-6">
+      {/* Floating Action Center - WeChat Style */}
+      <section className="flex flex-col items-center py-4">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.9 }}
           onClick={() => setShowManualAdd(true)}
-          className="relative group"
+          className="group relative flex flex-col items-center gap-3"
         >
-          <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-500"></div>
-          <div className="relative w-28 h-28 bg-white/60 backdrop-blur-xl border-4 border-primary/20 rounded-full flex flex-col items-center justify-center shadow-soft-3d group-hover:border-primary/40 transition-colors">
-            <BlobIcon type="happy" size={54} showShadow={false} />
-            <span className="text-primary font-bold text-xs mt-1">记一笔</span>
+          <div className="w-24 h-24 bg-white rounded-3xl shadow-[0_15px_40px_rgba(0,0,0,0.06)] flex items-center justify-center border border-gray-50 active:bg-gray-50 transition-all overflow-hidden">
+             <div className="absolute inset-0 bg-primary/5 opacity-0 group-active:opacity-100 transition-opacity" />
+             <BlobIcon type="happy" size={56} className="relative z-10" />
           </div>
+          <span className="text-sm font-black text-[#1A1C1E] tracking-widest px-4 py-1.5 bg-white/50 backdrop-blur-md rounded-full shadow-sm border border-white">
+            记一笔
+          </span>
         </motion.button>
       </section>
 
-      {/* Daily Details List */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-[#1A1C1E] flex items-center gap-2">
-            本日收入明细 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">实时</span>
-          </h3>
-          <span className="text-[10px] text-gray-400">今日 {todayRecords.length} 笔</span>
+      {/* Details Section */}
+      <section className="pb-10">
+        <div className="flex items-center justify-between px-2 mb-6">
+          <div>
+            <h3 className="font-black text-xl text-[#1A1C1E] tracking-tight">本日收入明细 实时</h3>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Today's Transactions</p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-50 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-[#1A1C1E]">今日 {todayRecords.length} 笔</span>
+          </div>
         </div>
         
         <div className="space-y-3">
