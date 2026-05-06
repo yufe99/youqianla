@@ -7,104 +7,135 @@ import React, { useState, useEffect } from 'react';
 import { Home, BarChart3, Settings, Plus, Mic, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BossModeProvider, useBossMode } from './components/BossModeContext';
-import { auth } from './lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { firestoreService } from './lib/firestoreService';
+import { apiService } from './lib/api';
 import { ViewType, RecordEntry, DreamGoal, ProjectConfig } from './types';
 import { storage } from './lib/storage';
 import HomePage from './components/HomePage';
 import StatsPage from './components/StatsPage';
 import SettingsPage from './components/SettingsPage';
-import LoginPage from './components/LoginPage';
 import { BlobIcon } from './components/BlobIcon';
 
 function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('home');
-  const [user, setUser] = useState<User | null>(null);
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [goal, setGoal] = useState<DreamGoal | null>(null);
   const [projects, setProjects] = useState<ProjectConfig[]>([]);
+  const [loading, setLoading] = useState(true);
   const { isBossMode, toggleBossMode } = useBossMode();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
-        // Fallback to local storage if not logged in (optional, but keep it for and test)
+    const loadData = async () => {
+      try {
+        const [loadedRecords, loadedGoal, loadedProjects] = await Promise.all([
+          apiService.getRecords(),
+          apiService.getGoal(),
+          apiService.getProjects()
+        ]);
+        
+        // If server is empty, try to migrate from local storage
+        if (loadedRecords.length === 0) {
+          const localRecords = storage.getRecords();
+          if (localRecords.length > 0) {
+            await Promise.all(localRecords.map(r => apiService.saveRecord(r)));
+            setRecords(localRecords);
+          } else {
+            setRecords([]);
+          }
+        } else {
+          setRecords(loadedRecords);
+        }
+
+        if (!loadedGoal) {
+          const localGoal = storage.getGoal();
+          if (localGoal) {
+            await apiService.saveGoal(localGoal);
+            setGoal(localGoal);
+          }
+        } else {
+          setGoal(loadedGoal);
+        }
+
+        if (loadedProjects.length === 0) {
+          const localProjects = storage.getProjects();
+          if (localProjects.length > 0) {
+            await apiService.saveProjects(localProjects);
+            setProjects(localProjects);
+          }
+        } else {
+          setProjects(loadedProjects);
+        }
+      } catch (err) {
+        console.warn("Could not sync with cloud, using local storage fallback.");
         setRecords(storage.getRecords());
         setGoal(storage.getGoal());
         setProjects(storage.getProjects());
+      } finally {
+        setLoading(false);
       }
-    });
-    return () => unsubscribe();
+    };
+    loadData();
   }, []);
 
-  useEffect(() => {
-    const unsubRecords = firestoreService.subscribeRecords(setRecords);
-    const unsubGoal = firestoreService.subscribeGoal(setGoal);
-    const unsubProjects = firestoreService.subscribeProjects(setProjects);
+  const handleAddRecord = async (entry: RecordEntry) => {
+    setRecords(prev => [entry, ...prev]);
+    storage.saveRecord(entry);
     
-    return () => {
-      unsubRecords();
-      unsubGoal();
-      unsubProjects();
-    };
-  }, [user]);
-
-  useEffect(() => {
-    // Attempt automatic background login if not logged in
-    if (!user) {
-      const { signInAnonymously } = import('firebase/auth').then(({ signInAnonymously }) => {
-        signInAnonymously(auth).catch(err => {
-          console.warn("Auto-login failed:", err.message);
-        });
-      });
-    }
-  }, [user]);
-
-  const handleAddRecord = (entry: RecordEntry) => {
-    if (user) {
-      firestoreService.saveRecord(entry);
-      if (goal) {
-        firestoreService.saveGoal({ ...goal, currentAmount: goal.currentAmount + entry.amount });
-      }
-    } else {
-      storage.saveRecord(entry);
-      setRecords(storage.getRecords());
+    try {
+      await apiService.saveRecord(entry);
       if (goal) {
         const updatedGoal = { ...goal, currentAmount: goal.currentAmount + entry.amount };
-        storage.saveGoal(updatedGoal);
+        await apiService.saveGoal(updatedGoal);
         setGoal(updatedGoal);
+        storage.saveGoal(updatedGoal);
       }
+    } catch (err) {
+      console.error("Cloud save failed");
     }
   };
 
-  const updateGoal = (newGoal: DreamGoal) => {
-    if (user) {
-      firestoreService.saveGoal(newGoal);
-    } else {
-      storage.saveGoal(newGoal);
-      setGoal(newGoal);
+  const updateGoal = async (newGoal: DreamGoal) => {
+    setGoal(newGoal);
+    storage.saveGoal(newGoal);
+    try {
+      await apiService.saveGoal(newGoal);
+    } catch (err) {
+      console.error("Cloud goal save failed");
     }
   };
 
-  const updateProjects = (newProjects: ProjectConfig[]) => {
-    if (user) {
-      firestoreService.saveProjects(newProjects);
-    } else {
-      storage.saveProjects(newProjects);
-      setProjects(newProjects);
+  const updateProjects = async (newProjects: ProjectConfig[]) => {
+    setProjects(newProjects);
+    storage.saveProjects(newProjects);
+    try {
+      await apiService.saveProjects(newProjects);
+    } catch (err) {
+      console.error("Cloud projects save failed");
     }
   };
 
-  const deleteRecord = (id: string) => {
-    if (user) {
-      firestoreService.deleteRecord(id);
-    } else {
-      storage.deleteRecord(id);
-      setRecords(storage.getRecords());
+  const deleteRecord = async (id: string) => {
+    setRecords(prev => prev.filter(r => r.id !== id));
+    storage.deleteRecord(id);
+    try {
+      await apiService.deleteRecord(id);
+    } catch (err) {
+      console.error("Cloud delete failed");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FF]">
+        <div className="flex flex-col items-center gap-6">
+          <BlobIcon type="happy" size={80} className="animate-bounce" />
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-12 h-12 border-4 border-[#07C160] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-500 font-bold tracking-widest mt-4">正在同步云端账本...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto relative overflow-hidden bg-[#F8F9FF]">

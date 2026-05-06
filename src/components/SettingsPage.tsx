@@ -4,12 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase, LogOut } from 'lucide-react';
+import { Plus, Download, ShieldCheck, Heart, Trash2, ArrowRight, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
 import { DreamGoal, RecordEntry, ProjectConfig } from '../types';
 import { storage } from '../lib/storage';
-import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
 
 interface SettingsPageProps {
   goal: DreamGoal | null;
@@ -25,12 +23,6 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
   
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectAmount, setNewProjectAmount] = useState('');
-
-  const handleLogout = async () => {
-    if (window.confirm('确定要退出登录吗？数据已同步到云端。')) {
-      await signOut(auth);
-    }
-  };
 
   const handleAddProject = () => {
     if (!newProjectName || !newProjectAmount) return;
@@ -181,25 +173,12 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
             </div>
             <span className="text-sm font-bold text-[#1A1C1E]">导出账目到微信 (CSV)</span>
           </div>
-          <ChevronRight size={18} className="text-gray-300" />
-        </button>
-
-        <button 
-          onClick={handleLogout}
-          className="w-full bg-white p-4 rounded-3xl flex items-center justify-between border border-gray-100 plush-button"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center">
-              <LogOut size={18} className="text-orange-500" />
-            </div>
-            <span className="text-sm font-bold text-[#1A1C1E]">退出登录 / 切换账户</span>
-          </div>
-          <ChevronRight size={18} className="text-gray-300" />
+          <ArrowRight size={18} className="text-gray-300" />
         </button>
 
         <button 
           onClick={() => {
-            if (window.confirm('确认清空所有账目吗？此操作不可撤销。')) {
+            if (window.confirm('确认清空所有账目吗？此操作不可撤销。该操作仅影响本地缓存，刷新后将重新同步云端。')) {
               storage.clearAll();
               window.location.reload();
             }
@@ -210,21 +189,23 @@ export default function SettingsPage({ goal, onSaveGoal, records, projects, onSa
             <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center">
               <Trash2 size={18} className="text-red-400" />
             </div>
-            <span className="text-sm font-bold text-[#1A1C1E]">清空所有数据</span>
+            <span className="text-sm font-bold text-[#1A1C1E]">清空缓存</span>
           </div>
-          <ChevronRight size={18} className="text-gray-300" />
+          <ArrowRight size={18} className="text-gray-300" />
         </button>
       </section>
 
-      {/* About */}
+      <div className="p-4 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+        <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+          微信云端身份自动识别已开启<br/>
+          数据由微信云托管提供技术支持
+        </p>
+      </div>
+
       <div className="p-6 text-center space-y-2 opacity-40">
-        <p className="text-xs font-bold text-[#1A1C1E]">今日有钱 v1.0.0</p>
+        <p className="text-xs font-bold text-[#1A1C1E]">今日有钱 v1.2.0</p>
         <p className="text-[10px] text-[#8E9196]">不做采集，只做你最贴心的记账伙伴</p>
       </div>
     </div>
   );
-}
-
-function ChevronRight({ size, className }: { size: number, className?: string }) {
-  return <ArrowRight size={size} className={className} />;
 }

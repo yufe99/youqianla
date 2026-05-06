@@ -13,7 +13,54 @@ async function startServer() {
   // Middleware for parsing JSON
   app.use(express.json());
 
-  // API testing route
+  // In-memory mock database (replace with MySQL for persistence)
+  // Key: openid, Value: user data
+  const db: Record<string, { records: any[], goal: any, projects: any[] }> = {};
+
+  const getUserData = (req: express.Request) => {
+    // WeChat Cloud Run automatically injects 'x-wx-openid' header
+    const openid = (req.headers['x-wx-openid'] || 'default-user') as string;
+    if (!db[openid]) {
+      db[openid] = { records: [], goal: null, projects: [] };
+    }
+    return db[openid];
+  };
+
+  // API Routes
+  app.get("/api/records", (req, res) => {
+    res.json(getUserData(req).records);
+  });
+
+  app.post("/api/records", (req, res) => {
+    const data = getUserData(req);
+    data.records.unshift(req.body);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/records/:id", (req, res) => {
+    const data = getUserData(req);
+    data.records = data.records.filter((r: any) => r.id !== req.params.id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/goal", (req, res) => {
+    res.json(getUserData(req).goal);
+  });
+
+  app.post("/api/goal", (req, res) => {
+    getUserData(req).goal = req.body;
+    res.json({ success: true });
+  });
+
+  app.get("/api/projects", (req, res) => {
+    res.json(getUserData(req).projects);
+  });
+
+  app.post("/api/projects", (req, res) => {
+    getUserData(req).projects = req.body.projects;
+    res.json({ success: true });
+  });
+
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
